@@ -24,7 +24,7 @@ import FeaturedIcon from 'public/images/svg/featured.svg'
 import FeaturedActiveIcon from 'public/images/svg/featured_active.svg'
 import clsx from 'clsx'
 import { ReactSelect } from '@/components/Select/ReactSelect'
-import { useMemo } from 'react'
+import { useMemo, useLayoutEffect } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 const tabStyle = 'inline-block border-gray-600 px-4 h-10 leading-10 text-gray-500 cursor-pointer'
@@ -40,6 +40,11 @@ const langOptions = [
   },
 ]
 
+const getBrowserLanguage = () => {
+  if (navigator.language) return navigator.language;
+  return "en";
+};
+
 export function TopFilters({type}) {
   const searchParams = useSearchParams();
   const { replace } = useRouter();
@@ -47,27 +52,34 @@ export function TopFilters({type}) {
 
   const recommendType = useMemo(() => {
     return searchParams?.get('recommend_type') || null
-  }, [searchParams  ])
+  }, [searchParams])
 
   const bodyType = useMemo(() => {
     return searchParams?.get('body_type') || null
-  }, [searchParams  ])
+  }, [searchParams])
 
   const lang = useMemo(() => {
     return searchParams?.get('lang') || null
-  }, [searchParams  ])
+  }, [searchParams])
 
-  const changeParams = (type, vaue) => {
+  const changeParams = (type, value) => {
     const params = new URLSearchParams(searchParams);
     params.set('page', '1');
-    if (vaue === null) {
+    if (value === null) {
       params.delete(type)
     } else {
-      params.set(type, vaue)
+      params.set(type, value)
     }
-
     replace(`${pathname}?${params.toString()}`);
   }
+
+  useLayoutEffect(() => {
+    if (localStorage.getItem("ob_userLang")) {
+      changeParams("lang", localStorage.getItem("ob_userLang"));
+    } else {
+      changeParams("lang", getBrowserLanguage() === "zh-CN" ? 'zh' : 'en');
+    }
+  },[]);
 
   return (
     <div className="flex items-center">
@@ -109,11 +121,13 @@ export function TopFilters({type}) {
           <div className="w-[140px] ml-2">
             <ReactSelect
               id="learn-order-select"
-              isClearable
               isSearchable={false}
               value={langOptions.find(f => f.value === lang)}
               className="no-bg showDropdownIndicator w-full bg-transparent height-sm"
-              onChange={e => changeParams('lang', e ? e.value : null)}
+              onChange={e => {
+                localStorage.setItem("ob_userLang", e.value)
+                changeParams('lang', e ? e.value : null)
+              }}
               options={langOptions}
               placeholder={'Language'}
             />
